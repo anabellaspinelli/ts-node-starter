@@ -19,7 +19,7 @@
     "strict": true,
     "target": "es6",
     "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["jest"],
+    "types": ["jest", "node"],
     "sourceRoot": "/",
     "sourceMap": true,
     "inlineSources": true,
