@@ -1,4 +1,4 @@
-import { parseInput } from './index';
+import { CronJob, parseInput, predictNextRun } from './index';
 
 describe('parseInput', () => {
   it('returns an array of a single cron for a single line of input', () => {
@@ -11,6 +11,12 @@ describe('parseInput', () => {
         },
       },
     ]);
+  });
+
+  it('throws with invalid cron configs', () => {
+    expect(() => parseInput('30 /bin/run_me_daily')).toThrow();
+    expect(() => parseInput('*')).toThrow();
+    expect(() => parseInput('')).toThrow();
   });
 
   it('returns an array crons for a multiline input', () => {
@@ -49,5 +55,141 @@ describe('parseInput', () => {
         },
       },
     ]);
+  });
+});
+
+describe('predictNextRun', () => {
+  describe('once a day', () => {
+    const dailyAtNoon: CronJob = {
+      command: '/bin/run_daily_noon',
+      config: {
+        hour: '12',
+        minutes: '00',
+      },
+    };
+
+    test('later today', () => {
+      expect(predictNextRun('10:33', dailyAtNoon)).toEqual({
+        day: 'today',
+        hour: '12',
+        minutes: '00',
+      });
+    });
+
+    test('tomorrow', () => {
+      expect(predictNextRun('14:55', dailyAtNoon)).toEqual({
+        day: 'tomorrow',
+        hour: '12',
+        minutes: '00',
+      });
+    });
+
+    test('now', () => {
+      expect(predictNextRun('12:00', dailyAtNoon)).toEqual({
+        day: 'today',
+        hour: '12',
+        minutes: '00',
+      });
+    });
+  });
+
+  describe('hourly', () => {
+    const hourlyAtQuarterPast: CronJob = {
+      command: '/bin/run_hourly_quarter_past',
+      config: {
+        hour: '*',
+        minutes: '15',
+      },
+    };
+
+    test('later today', () => {
+      expect(predictNextRun('10:00', hourlyAtQuarterPast)).toEqual({
+        day: 'today',
+        hour: '10',
+        minutes: '15',
+      });
+    });
+
+    test('now', () => {
+      expect(predictNextRun('10:15', hourlyAtQuarterPast)).toEqual({
+        day: 'today',
+        hour: '10',
+        minutes: '15',
+      });
+    });
+
+    test('first run tomorrow', () => {
+      expect(predictNextRun('23:30', hourlyAtQuarterPast)).toEqual({
+        day: 'tomorrow',
+        hour: '00',
+        minutes: '15',
+      });
+    });
+  });
+
+  describe('sixty times at a given hour', () => {
+    const sixtyTimesAtNoon: CronJob = {
+      command: '/bin/run_sixty_times_in_a_given_hour',
+      config: {
+        hour: '12',
+        minutes: '*',
+      },
+    };
+
+    test('before the hour', () => {
+      expect(predictNextRun('10:00', sixtyTimesAtNoon)).toEqual({
+        day: 'today',
+        hour: '12',
+        minutes: '00',
+      });
+    });
+
+    test('during the hour', () => {
+      expect(predictNextRun('12:22', sixtyTimesAtNoon)).toEqual({
+        day: 'today',
+        hour: '12',
+        minutes: '22',
+      });
+    });
+
+    test('after the hour', () => {
+      expect(predictNextRun('16:00', sixtyTimesAtNoon)).toEqual({
+        day: 'tomorrow',
+        hour: '12',
+        minutes: '00',
+      });
+    });
+  });
+
+  describe('every minute of the day', () => {
+    const everyMinuteOfTheDay: CronJob = {
+      command: '/bin/run_every_minute',
+      config: {
+        hour: '*',
+        minutes: '*',
+      },
+    };
+
+    it('always returns the current time', () => {
+      const minutes = new Array(60).fill(null).map((_, i) => i);
+      const hours = new Array(24).fill(null).map((_, i) => i);
+
+      const everyMinute = hours.flatMap((hour) => {
+        return minutes.map((minute) => [
+          hour.toString().padStart(2, '0'),
+          minute.toString().padStart(2, '0'),
+        ]);
+      });
+
+      everyMinute.forEach((time) => {
+        const currentTime = `${time[0]}:${time[1]}`;
+
+        expect(predictNextRun(currentTime, everyMinuteOfTheDay)).toEqual({
+          day: 'today',
+          hour: time[0],
+          minutes: time[1],
+        });
+      });
+    });
   });
 });
