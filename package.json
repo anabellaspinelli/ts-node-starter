@@ -8,7 +8,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "test": "jest"
+    "test": "jest",
+    "compile": "tsc"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
