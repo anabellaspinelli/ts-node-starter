@@ -11,8 +11,19 @@ stdin.on('data', function (chunk: string) {
 stdin.on('end', function () {
   if (data.length === 0) return '';
 
-  const crons = parseInput(data);
   const currentTime = process.argv.slice(2)[0];
+
+  if (!currentTime || currentTime.length === 0) {
+    console.error('Invalid current time: must not be empty');
+    return;
+  }
+
+  if (!isValidCurrentTime(currentTime)) {
+    console.error(`Invalid current time: "${currentTime}"`);
+    return;
+  }
+
+  const crons = parseInput(data);
   const nextRuns = crons.map((cron) => {
     const nextRun = predictNextRun(currentTime, cron);
 
@@ -80,6 +91,25 @@ export function isValidCron({
     (!Number.isNaN(numericHour) && numericHour >= 0 && numericHour <= 23);
 
   return isValidMinutes && isValidHour && command.length > 0;
+}
+
+export function isValidCurrentTime(time: string): boolean {
+  const timeParts = time.split(':');
+
+  if (!timeParts || timeParts.length !== 2) return false;
+
+  const [numericHour, numericMinutes] = timeParts.map((field) =>
+    parseInt(field, 10)
+  );
+
+  const isValidHour =
+    !Number.isNaN(numericHour) && numericHour >= 0 && numericHour <= 23;
+  const isValidMinutes =
+    !Number.isNaN(numericMinutes) &&
+    numericMinutes >= 0 &&
+    numericMinutes <= 59;
+
+  return isValidHour && isValidMinutes;
 }
 
 export function predictNextRun(

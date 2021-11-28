@@ -1,4 +1,4 @@
-import { CronJob, isValidCron, parseInput, predictNextRun } from './index';
+import { CronJob, isValidCron, parseInput, predictNextRun } from './minicron';
 
 describe('parseInput', () => {
   it('returns an array of a single cron for a single line of input', () => {
@@ -50,79 +50,106 @@ describe('parseInput', () => {
       },
     ]);
   });
+});
 
-  describe('isValidCron', () => {
-    it('returns true for a valid cron', () => {
-      expect(
-        isValidCron({
-          command: '/bin/some_command',
-          config: { hour: '12', minutes: '12' },
-        })
-      ).toBe(true);
-    });
+describe('isValidCron', () => {
+  it('returns true for a valid daily cron', () => {
+    expect(
+      isValidCron({
+        command: '/bin/daily',
+        config: { hour: '12', minutes: '12' },
+      })
+    ).toBe(true);
+  });
 
-    it('returns false for a cron with an empty command', () => {
-      expect(
-        isValidCron({
-          command: '',
-          config: { hour: '12', minutes: '12' },
-        })
-      ).toBe(false);
-    });
+  it('returns true for a valid hourly cron', () => {
+    expect(
+      isValidCron({
+        command: '/bin/hourly',
+        config: { hour: '*', minutes: '12' },
+      })
+    ).toBe(true);
+  });
 
-    it('returns false for a cron with an empty hour', () => {
-      expect(
-        isValidCron({
-          command: '/bin/empty_hour',
-          config: { hour: '', minutes: '12' },
-        })
-      ).toBe(false);
-    });
+  it('returns true for a valid cron that runs 60 times', () => {
+    expect(
+      isValidCron({
+        command: '/bin/sixty',
+        config: { hour: '12', minutes: '*' },
+      })
+    ).toBe(true);
+  });
 
-    it('returns false for a cron with an empty minutes', () => {
-      expect(
-        isValidCron({
-          command: '/bin/empty_minutes',
-          config: { hour: '12', minutes: '' },
-        })
-      ).toBe(false);
-    });
+  it('returns true for a valid cron that runs every minute of the day', () => {
+    expect(
+      isValidCron({
+        command: '/bin/sixty',
+        config: { hour: '*', minutes: '*' },
+      })
+    ).toBe(true);
+  });
 
-    it('returns false for a cron with hour over 23', () => {
-      expect(
-        isValidCron({
-          command: '/bin/hour_too_big',
-          config: { hour: '24', minutes: '12' },
-        })
-      ).toBe(false);
-    });
+  it('returns false for a cron with an empty command', () => {
+    expect(
+      isValidCron({
+        command: '',
+        config: { hour: '12', minutes: '12' },
+      })
+    ).toBe(false);
+  });
 
-    it('returns false for a cron with a negative hour', () => {
-      expect(
-        isValidCron({
-          command: '/bin/hour_too_big',
-          config: { hour: '-1', minutes: '12' },
-        })
-      ).toBe(false);
-    });
+  it('returns false for a cron with an empty hour', () => {
+    expect(
+      isValidCron({
+        command: '/bin/empty_hour',
+        config: { hour: '', minutes: '12' },
+      })
+    ).toBe(false);
+  });
 
-    it('returns false for a cron with hour over 59', () => {
-      expect(
-        isValidCron({
-          command: '/bin/hour_too_big',
-          config: { hour: '12', minutes: '60' },
-        })
-      ).toBe(false);
-    });
+  it('returns false for a cron with an empty minutes', () => {
+    expect(
+      isValidCron({
+        command: '/bin/empty_minutes',
+        config: { hour: '12', minutes: '' },
+      })
+    ).toBe(false);
+  });
 
-    it('returns false for a cron with a negative minutes', () => {
-      expect(
-        isValidCron({
-          command: '/bin/hour_too_big',
-          config: { hour: '12', minutes: '-1' },
-        })
-      ).toBe(false);
-    });
+  it('returns false for a cron with hour over 23', () => {
+    expect(
+      isValidCron({
+        command: '/bin/hour_too_big',
+        config: { hour: '24', minutes: '12' },
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a cron with a negative hour', () => {
+    expect(
+      isValidCron({
+        command: '/bin/hour_too_big',
+        config: { hour: '-1', minutes: '12' },
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a cron with hour over 59', () => {
+    expect(
+      isValidCron({
+        command: '/bin/hour_too_big',
+        config: { hour: '12', minutes: '60' },
+      })
+    ).toBe(false);
+  });
+
+  it('returns false for a cron with a negative minutes', () => {
+    expect(
+      isValidCron({
+        command: '/bin/hour_too_big',
+        config: { hour: '12', minutes: '-1' },
+      })
+    ).toBe(false);
   });
 });
 
