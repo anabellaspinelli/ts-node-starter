@@ -9,6 +9,8 @@ stdin.on('data', function (chunk: string) {
 });
 
 stdin.on('end', function () {
+  if (data.length === 0) return '';
+
   const crons = parseInput(data);
   const currentTime = process.argv.slice(2)[0];
   const nextRuns = crons.map((cron) => {
@@ -31,30 +33,53 @@ export interface CronJob {
   };
 }
 
+interface CronJobRun {
+  day: 'today' | 'tomorrow';
+  minutes: string;
+  hour: string;
+}
+
 export function parseInput(input: string): CronJob[] {
   const inputLines = input.trim().split('\n');
 
-  return inputLines.map((line) => {
+  const cronJobs: CronJob[] = [];
+
+  for (const line of inputLines) {
     const [minutes, hour, command] = line.trim().split(' ');
-
-    if (!minutes || !hour || !command) {
-      throw new Error('Invalid cron input: ' + input);
-    }
-
-    return {
+    const cronJob: CronJob = {
       command,
       config: {
         minutes,
         hour,
       },
     };
-  });
+
+    if (isValidCron(cronJob)) {
+      cronJobs.push(cronJob);
+    }
+  }
+
+  return cronJobs;
 }
 
-interface CronJobRun {
-  day: 'today' | 'tomorrow';
-  minutes: string;
-  hour: string;
+export function isValidCron({
+  config: { minutes, hour },
+  command,
+}: CronJob): boolean {
+  const numericMinutes = parseInt(minutes, 10);
+  const numericHour = parseInt(hour, 10);
+
+  const isValidMinutes =
+    minutes === '*' ||
+    (!Number.isNaN(numericMinutes) &&
+      numericMinutes >= 0 &&
+      numericMinutes <= 59);
+
+  const isValidHour =
+    hour === '*' ||
+    (!Number.isNaN(numericHour) && numericHour >= 0 && numericHour <= 23);
+
+  return isValidMinutes && isValidHour && command.length > 0;
 }
 
 export function predictNextRun(
@@ -67,9 +92,6 @@ export function predictNextRun(
   const isEveryHour = cronJob.config.hour === '*';
   const isEveryMinute = cronJob.config.minutes === '*';
 
-  // might try a less brute-forcey way if I had the time
-  // for example only generating possible run times that
-  // are equal or greater than the current time
   const cronHours = isEveryHour
     ? generateEveryHour()
     : [parseInt(cronJob.config.hour, 10)];
@@ -114,6 +136,7 @@ export function predictNextRun(
 function generateEveryHour(): number[] {
   return new Array(24).fill(null).map((_, i) => i);
 }
+
 function generateEveryMinute(): number[] {
   return new Array(60).fill(null).map((_, i) => i);
 }
